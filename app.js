@@ -1,11 +1,12 @@
 import 'dotenv/config';
-import jwt from 'jsonwebtoken';
 import express from 'express';
 import mongoose from 'mongoose';
 import logger from 'morgan';
-import passport from 'passport';
 import cors from 'cors';
-import { createHttpError } from 'http-errors';
+import createHttpError from 'http-errors';
+import User from './models/UserModel';
+import passport from 'passport';
+import userRouter from './routes/UserRouter';
 
 const app = express();
 
@@ -18,32 +19,39 @@ async function main() {
 
 main().catch(err => console.log('Mongo Connection error'));
 
-// Global middleware
-const corsOption = { // Change later.
-    "origin": "*",
-    "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
-    "preflightContinue": false,
-    "optionsSuccessStatus": 204
+// Configs for the global middleware
+const corsOption = { // Change later. // Config for the CORS
+    'origin': '*',
+    'methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    'preflightContinue': false,
+    'optionsSuccessStatus': 204
   }
+
+// Global middleware
 app.use(cors(corsOption));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true}));
 app.use(passport.initialize());
 
-
 // Routers
-app.get('/api', (req,res,next) => {
-    res.json({
-        body: "Welcome to the API"
-    })
-})
-
+app.use('/users', userRouter);
 
 // Catching 404 and forwarding it to error handler
 app.use(function(req,res,next) {1
     next(createHttpError(404));
 });
+
+app.use(function (err,req,res,next) {
+    // set locals, only providing error in dev
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') == 'development' ? err : {};
+
+    // render error page
+    res.status(err.status || 500);
+    res.json({error: err.message});
+}
+);
 
 app.listen(process.env.PORT, ()=> {
     console.log(`Listening at port ${process.env.PORT}`);
