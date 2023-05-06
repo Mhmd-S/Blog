@@ -9,22 +9,25 @@ import '../passport'; // Imports the strategies that will be used by passport
 
 let router = express.Router();
 
-router.get('/:userId', passport.authenticate('jwt', { session: false }), asyncHandler( async(req,res,next) => {
-    // Fetch the user information from mongo using the id
-    const userInfo = await User.findOne({ _id: req.params.userId});
-    
-    if (userInfo) {   // Return object to user if found
-        res.status(200).json({
-            username: userInfo.username,
-            _id: userInfo._id
+router.get('/:userId', 
+    passport.authenticate('jwt', { session: false }), 
+    (req,res,next) => {
+        // Fetch the user information from mongo using the id
+        User.findOne({ _id: req.params.userId})
+        .then(userInfo => {
+            res.status(200).json({
+                username: userInfo.username,
+                _id: userInfo._id
+            })
         })
-        return;
+        .catch(e => {
+            res.status(400).json({ error: 'User could not be found' });
+        });
     }
-
-    throw new Error('Resource could not be found');
-}));
+);
 
 router.post('/add-user',
+    passport.authenticate('jwt', { session : false }),
     body('email') // Validates the email
     .isEmail().withMessage('Invalid Email')
     .escape(),
@@ -51,13 +54,14 @@ router.post('/add-user',
 
         // Send errors if found
         if(!errors.isEmpty()){
-            res.send(errors);
+            res.status(400).json({ error: errors.array() });
             return;
         }
 
         // Setup the encryption and saving the info
         bcrypt.hash(req.body.password, 10, (err, hash) => {
             if (err) {
+                res.status(400).json({error: 'Could not create user'})
                 throw new Error('Error with hashing!');
             }
 
@@ -72,6 +76,7 @@ router.post('/add-user',
                     res.json({message: 'User created succesfully'});    
                 })
                 .catch((err)=> {
+                    res.status(400).json({message: 'Could not create user'})
                     throw new Error(err);
                 });
         } );
@@ -83,22 +88,35 @@ router.post('/sign-in', function (req, res, next) {
     passport.authenticate('local', {session: false}, (err, user, info) => {
         if (err || !user) {
             return res.status(400).json({
-                message: 'Something is not right'
+                error: 'Something is not right'
             });
         }
     
         req.login(user, { session: false }, (err) => {
             if (err) {
-                res.json({error: err});
+                return res.status(400).json({error: err});
             }     
 
         // generate a signed son web token with the contents of user object and return it in the response  
-            const token = jwt.sign(user.toJSON(), process.env.JWT_KEY);
-            return res.json({ user, token });
+            const accessToken = jwt.sign(user.toJSON(), process.env.JWT_KEY, { expiresIn: '30min' });
+            const refreshToken = jwt.sign(user.toJSON(), process.env.JWT_KEY, { expiresIn: '14d' });
+
+            res.cookie('access_token', accessToken, {
+                httpOnly: true,
+                secure: true,
+                maxAge: 30 * 60 * 1000 // 30 minutes in milliseconds
+              });
+            
+            res.cookie('refresh_token', refreshToken, {
+                httpOnly: true,
+                secure: true,
+                maxAge: 14 * 24 * 60 * 60 * 1000 // 14 days in milliseconds
+              });
+
+            return res.json({ message: 'Signed in successfully' });
         });
     })(req, res, next);
 });
 
-router.post('/')
 
 export default router;

@@ -21,19 +21,24 @@ passport.use(
                   // passwords do not match!
                   return done(null, false, { message: 'Incorrect password' })
                 }
-              })
-            return done(null,user);
+            })
         } catch(e) {
             return done(e);
         }
     })
 );
 
+const cookieExtractor = (req) => {
+    if (req && req.signedCookies && req.signedCookies.access_token ) {
+        const token = req.signedCookies['access_token']['token'];
+        return token; 
+    }  
+}
+
 const opts = {
-    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    jwtFromRequest: cookieExtractor,
     secretOrKey: process.env.JWT_KEY
 };
-
 
 passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
     User.findOne({id: jwt_payload.sub}).exec()
