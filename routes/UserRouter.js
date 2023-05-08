@@ -5,12 +5,14 @@ import { body, validationResult } from 'express-validator';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
 
+
 import '../passport'; // Imports the strategies that will be used by passport
+import { authenticateRequestCookie } from '../passport';
 
 let router = express.Router();
 
 router.get('/:userId', 
-    passport.authenticate('jwt', { session: false }), 
+    authenticateRequestCookie, 
     (req,res,next) => {
         // Fetch the user information from mongo using the id
         User.findOne({ _id: req.params.userId})
@@ -97,20 +99,26 @@ router.post('/sign-in', function (req, res, next) {
                 return res.status(400).json({error: err});
             }     
 
+            // JWT payload 
+            const jwtPayload = {
+                _id: user._id,
+                emial: user.email
+            }
+
         // generate a signed son web token with the contents of user object and return it in the response  
-            const accessToken = jwt.sign(user.toJSON(), process.env.JWT_KEY, { expiresIn: '30min' });
-            const refreshToken = jwt.sign(user.toJSON(), process.env.JWT_KEY, { expiresIn: '14d' });
+            const accessToken = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: 30 * 60 }); // 30 mins
+            const refreshToken = jwt.sign(jwtPayload, process.env.JWT_KEY_REFRESH, { expiresIn: 14 * 24 * 60 * 60 }); // 14 days
 
             res.cookie('access_token', accessToken, {
                 httpOnly: true,
                 secure: true,
-                maxAge: 30 * 60 * 1000 // 30 minutes in milliseconds
+                // maxAge: 30 * 60 * 1000 // 30 minutes in milliseconds
               });
             
-            res.cookie('refresh_token', refreshToken, {
+            res.cookie('refresh_token', refreshToken, { // check the cookie
                 httpOnly: true,
                 secure: true,
-                maxAge: 14 * 24 * 60 * 60 * 1000 // 14 days in milliseconds
+                // maxAge: 14 * 24 * 60 * 60 * 1000 // 14 days in milliseconds
               });
 
             return res.json({ message: 'Signed in successfully' });

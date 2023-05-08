@@ -29,27 +29,37 @@ passport.use(
 );
 
 const cookieExtractor = (req) => {
-    if (req && req.signedCookies && req.signedCookies.access_token ) {
-        const token = req.signedCookies['access_token']['token'];
+    if (req && req.cookies ) {
+        const token = req.cookies.access_token; 
         return token; 
     }  
 }
 
-const opts = {
-    jwtFromRequest: cookieExtractor,
-    secretOrKey: process.env.JWT_KEY
-};
+const authenticateRequestCookie = (req,res,next) => {
+    const token = cookieExtractor(req);
+    console.log(Date.now())
+    const result = jwt.verify(token, process.env.JWT_KEY);
+    console.log(result);
+    next();
+}
 
-passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
-    User.findOne({id: jwt_payload.sub}).exec()
-        .then(user => {
-            if (user) {
-                return done(null, user);
-            } else {
-                return done(null, false);
-            }
-        })
-        .catch(err => {
-            return done(err,false)
-        });
-}));
+export { authenticateRequestCookie };
+
+// const opts = {
+//     jwtFromRequest: cookieExtractor,
+//     secretOrKey: process.env.JWT_KEY
+// };
+
+// passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
+//     User.findOne({ id: jwt_payload.sub }).exec()
+//         .then(user => {
+//             if (user) {
+//                 done(null, user);
+//             } else {
+//                 done(null, false);
+//             }
+//         })
+//         .catch(err => {
+//             return done(err,false)
+//         });
+// }));
