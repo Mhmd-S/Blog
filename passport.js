@@ -11,7 +11,7 @@ passport.use(
         try {
             const user = await User.findOne({ email: username });
             if(!user) {
-                return done(null, false, { message: 'Incorrect Username' });
+                return done({ message: 'Incorrect email' }, false );
             }
             bcrypt.compare(password, user.password, (err, res) => {
                 if (res) {
@@ -19,7 +19,7 @@ passport.use(
                   return done(null, user)
                 } else {
                   // passwords do not match!
-                  return done(null, false, { message: 'Incorrect password' })
+                  return done({ message: 'Incorrect password' }, false)
                 }
             })
         } catch(e) {
@@ -28,22 +28,40 @@ passport.use(
     })
 );
 
-const cookieExtractor = (req) => {
+// Not passport. But is used to to verify the user
+// If adming is true then get the access_token_admin otherwise get the normal access_token
+const cookieExtractor = (req, admin) => {
     if (req && req.cookies ) {
-        const token = req.cookies.access_token; 
+        const token = admin ? req.cookies.access_token_admin : req.cookies.access_token;
         return token; 
     }  
 }
 
-const authenticateRequestCookie = (req,res,next) => {
-    const token = cookieExtractor(req);
-    console.log(Date.now())
-    const result = jwt.verify(token, process.env.JWT_KEY);
-    console.log(result);
-    next();
+// Middleware for authenticating user
+export const verifyJWT = (req,res,next) => {
+    const accessToken = cookieExtractor(req, false)
+    jwt.verify(accessToken, process.env.JWT_KEY,(err, decoded) => {
+        if (err) {
+            console.log(accessToken)
+            res.status(401).json({success: false, message: 'Toking invalid!'});
+            return;
+        }
+        next();
+    });
 }
 
-export { authenticateRequestCookie };
+// Middleware for authenticating admins
+// Whenever the admins are sending a request a protected route they need to sned their admin cookie as the access_token
+export const verifyAdminJWT = (req,res,next) => { 
+    const accessToken = cookieExtractor(req, true);
+    jwt.verify(accessToken, process.env.JWT_KEY_ADMIN, (err, decoded) => {
+        if (err) {
+            res.status(401).json({ success: false, message: 'Toking invalid!' });
+            return;
+        }
+        next();
+    });
+}
 
 // const opts = {
 //     jwtFromRequest: cookieExtractor,

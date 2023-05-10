@@ -25,11 +25,48 @@ Router.get('/refresh', (req,res,next) => {
             email: decoded.email
         }
 
-        const access_token = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: 30 * 60 }); // Expires in 30 minutes
+        const accessToken = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: 30 * 60000 }); // Expires in 30 minutes
         
-        res.status(200).json({ success: true, access_token: access_token });
+
+        res.cookie('access_token', accessToken, {
+            httpOnly: true,
+            secure: true,
+          });
+
+        res.status(200).json({ success: true, access_token: accessToken });
     });
-    
+});
+
+
+// Verify if the user send an valid token
+Router.get('/refresh-admin', (req,res,next) => { 
+    const token = cookieExtractor(req);
+    jwt.verify(token, process.env.JWT_KEY_ADMIN_REFRESH, (err, decoded) => {
+        
+        if(err) {
+            res.status(401).json({ success: false, message: 'Token is invalid! Log in again.' });
+            return;
+        }
+
+        const jwtPayload = {
+            _id: decoded._id,
+            email: decoded.email
+        }
+
+        const accessToken = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: 30 * 60000 }); // Expires in 30 minutes
+        const accessTokenAdmin = jwt.sign(jwtPayload, process.env.JWT_KEY_ADMIN, { expiresIn: 30 * 60000 }); // Expires in 30 minutes
+        
+        res.cookie('access_token', accessToken, {
+            httpOnly: true,
+            secure: true,
+          });
+        res.cookie('access_token_admin', accessTokenAdmin, {
+            httpOnly: true,
+            secure: true,
+          });
+
+        res.status(200).json({ success: true, message:'New tokens have been sent' });
+    });
 });
 
 

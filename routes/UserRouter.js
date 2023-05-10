@@ -3,33 +3,30 @@ import asyncHandler from 'express-async-handler';
 import User from '../models/UserModel';
 import { body, validationResult } from 'express-validator';
 import passport from 'passport';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-
+import {verifyJWT, verifyAdminJWT} from '../passport';
 
 import '../passport'; // Imports the strategies that will be used by passport
-import { authenticateRequestCookie } from '../passport';
+import Post from '../models/PostModel';
 
 let router = express.Router();
 
-router.get('/:userId', 
-    authenticateRequestCookie, 
-    (req,res,next) => {
-        // Fetch the user information from mongo using the id
-        User.findOne({ _id: req.params.userId})
+router.get('/:userId', verifyJWT, (req,res,next) => {
+    // Fetch the user information from mongo using the id
+    User.findOne({ _id: req.params.userId })
         .then(userInfo => {
             res.status(200).json({
                 username: userInfo.username,
                 _id: userInfo._id
             })
         })
-        .catch(e => {
+        .catch(e => { 
             res.status(400).json({ error: 'User could not be found' });
         });
-    }
-);
+});
 
 router.post('/add-user',
-    passport.authenticate('jwt', { session : false }),
     body('email') // Validates the email
     .isEmail().withMessage('Invalid Email')
     .escape(),
@@ -74,7 +71,7 @@ router.post('/add-user',
             });
 
             user.save()
-                .then(() => {
+                .then((result) => {
                     res.json({message: 'User created succesfully'});    
                 })
                 .catch((err)=> {
@@ -85,12 +82,23 @@ router.post('/add-user',
     })
 );
 
+router.delete('/:userId', verifyAdminJWT, (req,res,next) => {
+    User.deleteOne({ _id: req.params.userId })
+        .then(()=>
+            res.status(200).json({ success: true, message: 'User deleted successfully' })
+        )
+        .catch(err => {
+            res.status(501).json({ success: false, message: 'Could not delete user' });
+        })
+});
+
 // Using the local strategy we authenticate the user. If the auth is successfull we generate a token and send it to the user
-router.post('/sign-in', function (req, res, next) {
+router.post('/sign-in', (req, res, next)  => {
     passport.authenticate('local', {session: false}, (err, user, info) => {
         if (err || !user) {
             return res.status(400).json({
-                error: 'Something is not right'
+                success: false,
+                message: err
             });
         }
     
@@ -102,26 +110,44 @@ router.post('/sign-in', function (req, res, next) {
             // JWT payload 
             const jwtPayload = {
                 _id: user._id,
-                emial: user.email
+                emaill: user.email
             }
 
-        // generate a signed son web token with the contents of user object and return it in the response  
-            const accessToken = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: 30 * 60 }); // 30 mins
-            const refreshToken = jwt.sign(jwtPayload, process.env.JWT_KEY_REFRESH, { expiresIn: 14 * 24 * 60 * 60 }); // 14 days
+            let accessToken;
+            let accessTokenAdmin;
+            let refreshToken;
 
-            res.cookie('access_token', accessToken, {
+            try{
+                if (user.isAdmin) { // Check if user is admin and use the suitable env variable
+                    // generate a signed son web token with the contents of user object and return it in the response
+                    // Admins also have a unique cookie for accessing protected routes.          
+                    accessTokenAdmin = jwt.sign(jwtPayload, process.env.JWT_KEY_ADMIN, { expiresIn: '1h' }); // 30 mins
+                    accessToken = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: '1h' }); // 30 mins
+                    refreshToken = jwt.sign(jwtPayload, process.env.JWT_KEY_ADMIN_REFRESH, { expiresIn: '1d' }); // 24 hours
+                } else {
+                    accessToken = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: '1h' }); // 30 mins
+                    refreshToken = jwt.sign(jwtPayload, process.env.JWT_KEY_REFRESH, { expiresIn: '14d' }); // 14 days
+                }
+            }
+            catch (e) {
+                res.json({ success: false, message:'failed to sign tokens!'});
+            }
+
+            if (accessTokenAdmin) {
+                res.cookie('access_token_admin', accessTokenAdmin, { 
+                    httpOnly: true,
+                });
+            }
+
+            res.cookie('access_token', accessToken, { // Can it be this shiT?????
                 httpOnly: true,
-                secure: true,
-                // maxAge: 30 * 60 * 1000 // 30 minutes in milliseconds
               });
             
-            res.cookie('refresh_token', refreshToken, { // check the cookie
+            res.cookie('refresh_token', refreshToken, {
                 httpOnly: true,
-                secure: true,
-                // maxAge: 14 * 24 * 60 * 60 * 1000 // 14 days in milliseconds
               });
 
-            return res.json({ message: 'Signed in successfully' });
+            return res.json({ success: true ,message: 'Signed in successfully' });
         });
     })(req, res, next);
 });
