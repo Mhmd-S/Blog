@@ -52,8 +52,9 @@ router.post('/add-post',
                     title: req.body.title,
                     content: req.body.content,
                     author: req.user._id,
-                    date: new Date()
-                }) 
+                    date: new Date(),
+                    lastUpadate: new Date()
+                })  
 
                 postInfo.save()
                     .then(()=>{
@@ -63,6 +64,42 @@ router.post('/add-post',
                         res.status(400).json({ error: e});
                     })
             }
-    )
+)
+
+router.put('/postId', (req,res,next) => {
+    verifyAdminJWT,
+            body('title')
+            .trim()
+            .not().isEmpty().withMessage('Title can not be empty!')
+            .escape(),
+            body('content')
+            .trim()
+            .isLength({ min:1, max: 1250 }).withMessage('Content size should be atleast 1 character and a maximum of 1250')
+            .escape(),
+            (req,res,next) => {
+            
+                const errors = validationResult(req);
+
+                if ( !errors.isEmpty() ) {
+                    res.status(400).json({ error: errors.array() })
+                    return;
+                }
+
+                Post.updateOne({ _id: req.body.postId }, { 
+                    title: req.body.title,
+                    content: req.body.content,
+                    author: req.user._id,
+                    lastUpdate: new Date()
+                })
+
+                postInfo.save()
+                    .then(()=>{
+                        res.status(200).json({ status: 'success' });
+                    })
+                    .catch((e)=>{
+                        res.status(400).json({ error: e});
+                    })
+            }
+})
 
 export default router;
