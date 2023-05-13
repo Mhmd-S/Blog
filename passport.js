@@ -38,7 +38,7 @@ const cookieExtractor = (req, admin) => {
 }
 
 // Middleware for authenticating user
-export const verifyJWT = (req,res,next) => {
+const verifyJWT = (req,res,next) => {
     const accessToken = cookieExtractor(req, false)
     jwt.verify(accessToken, process.env.JWT_KEY,(err, decoded) => {
         if (err) {
@@ -46,38 +46,23 @@ export const verifyJWT = (req,res,next) => {
             res.status(401).json({success: false, message: 'Toking invalid!'});
             return;
         }
+        req.userId = decoded._id;
         next();
     });
 }
 
 // Middleware for authenticating admins
 // Whenever the admins are sending a request a protected route they need to sned their admin cookie as the access_token
-export const verifyAdminJWT = (req,res,next) => { 
+const verifyAdminJWT = (req,res,next) => { 
     const accessToken = cookieExtractor(req, true);
     jwt.verify(accessToken, process.env.JWT_KEY_ADMIN, (err, decoded) => {
         if (err) {
             res.status(401).json({ success: false, message: 'Toking invalid!' });
             return;
         }
+        req.userId = decoded._id;
         next();
     });
 }
 
-// const opts = {
-//     jwtFromRequest: cookieExtractor,
-//     secretOrKey: process.env.JWT_KEY
-// };
-
-// passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
-//     User.findOne({ id: jwt_payload.sub }).exec()
-//         .then(user => {
-//             if (user) {
-//                 done(null, user);
-//             } else {
-//                 done(null, false);
-//             }
-//         })
-//         .catch(err => {
-//             return done(err,false)
-//         });
-// }));
+export { cookieExtractor, verifyJWT, verifyAdminJWT };

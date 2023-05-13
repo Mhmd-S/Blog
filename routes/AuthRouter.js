@@ -30,7 +30,6 @@ Router.get('/refresh', (req,res,next) => {
 
         res.cookie('access_token', accessToken, {
             httpOnly: true,
-            secure: true,
           });
 
         res.status(200).json({ success: true, access_token: accessToken });
@@ -58,11 +57,10 @@ Router.get('/refresh-admin', (req,res,next) => {
         
         res.cookie('access_token', accessToken, {
             httpOnly: true,
-            secure: true,
           });
+          
         res.cookie('access_token_admin', accessTokenAdmin, {
             httpOnly: true,
-            secure: true,
           });
 
         res.status(200).json({ success: true, message:'New tokens have been sent' });

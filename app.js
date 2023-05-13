@@ -8,11 +8,9 @@ import createHttpError from 'http-errors';
 import User from './models/UserModel';
 import passport from 'passport';
 
-
 import userRouter from './routes/UserRouter';
 import postRouter from './routes/PostRouter';
 import authRouter from './routes/AuthRouter';
-
 
 const app = express();
 

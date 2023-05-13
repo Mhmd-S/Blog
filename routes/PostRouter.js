@@ -1,11 +1,12 @@
 import express from 'express';
-import passport from 'passport';
 import Post from '../models/PostModel';
 import { body, validationResult } from 'express-validator';
 import { verifyJWT, verifyAdminJWT } from '../passport';
+import Comment from '../models/CommentsModel'
 
 let router = express.Router();
 
+// Get all a certain amount of posts
 router.get('/list/:amount', verifyJWT, async (req,res,next) => {
     Post.find({})
         .then(posts => {
@@ -16,6 +17,8 @@ router.get('/list/:amount', verifyJWT, async (req,res,next) => {
         });
 } );
 
+
+// Get a certain post using its id
 router.get('/:postId', verifyJWT, (req,res,next) => {
     const postId = req.params.postId;
 
@@ -29,6 +32,8 @@ router.get('/:postId', verifyJWT, (req,res,next) => {
     }
 );
 
+
+// Create a post
 router.post('/add-post', 
             verifyAdminJWT,
             body('title')
@@ -51,7 +56,7 @@ router.post('/add-post',
                 const postInfo = new Post({
                     title: req.body.title,
                     content: req.body.content,
-                    author: req.user._id,
+                    author: req.userId, // Recieved when verifying the cookies
                     date: new Date(),
                     lastUpadate: new Date()
                 })  
@@ -66,8 +71,9 @@ router.post('/add-post',
             }
 )
 
-router.put('/postId', (req,res,next) => {
-    verifyAdminJWT,
+// Update a post
+router.put('/:postId',
+            verifyAdminJWT,
             body('title')
             .trim()
             .not().isEmpty().withMessage('Title can not be empty!')
@@ -83,23 +89,93 @@ router.put('/postId', (req,res,next) => {
                 if ( !errors.isEmpty() ) {
                     res.status(400).json({ error: errors.array() })
                     return;
-                }
+                }                
 
-                Post.updateOne({ _id: req.body.postId }, { 
+                Post.updateOne({ _id: req.params.postId  }, { 
                     title: req.body.title,
                     content: req.body.content,
-                    author: req.user._id,
+                    author: req.userId,
                     lastUpdate: new Date()
                 })
+                .then(()=>{
+                    res.status(200).json({ success: true, message:'Post updated successfully'})
+                })
+                .catch(e=> {
+                    res.status(501).json({ success: false, message:'Could not update post'})
+                })
+            }
+)
 
-                postInfo.save()
-                    .then(()=>{
-                        res.status(200).json({ status: 'success' });
+// Delete a post
+router.delete('/:postId', 
+            verifyAdminJWT,
+            (req,res,next) => {
+                Post.deleteOne({ _id : req.params.postId })
+                .then(()=>{
+                    res.status(200).json({ success: true, message: 'Post deleted successfully'})
+                })
+                .catch(e => {
+                    res.status(501).json({ success: false, message: 'Could not delete post'})
+                })
+            }
+)
+
+// Post comments
+
+router.get('/:postId/comments', 
+            verifyJWT,
+            (req,res,next) => {
+                Post.findById( req.params.postId ).populate('comments').exec()
+                .then((comments)=>{
+                    res.status(200).json({ success: true, message : comments })
+                })
+                .catch(e => {
+                    res.status(501).json({ success: false, message: 'Could not get comments'})
+                })
+            
+})
+
+router.put('/:postId/comments/add-comment', 
+            verifyJWT,
+            body('content')
+            .trim()
+            .isLength({ min:1, max: 300 }).withMessage('Comments can have a minimum of 1 character and maximum if 300 characters')
+            .escape(),
+            (req,res,next) => {
+                const errors = validationResult(req);
+                if (!errors.isEmpty()) {
+                    res.status(400).json({ success: false, message: errors })
+                    return;
+                }
+
+                const newComment = new Comment({
+                    author: req.userId,
+                    content: req.body.content,
+                    date: new Date(),
+                    post: req.params.id
+                })
+
+                newComment.save()
+                    .then((result)=>{
+                        console.log(result)
+                        Post.updateOne({ _id: req.params.postId },
+                                       {$push: {comments:  result._id}
+                        })
+                        .then(()=>{
+                            res.status(200).json({ success: true, message: 'Comment added successfully'})
+                        })
+                        .catch(e => {
+                            console.log(e);
+                            res.status(501).json({ success: false, message: 'Could not add comment'})
+                            return;
+                        })
                     })
-                    .catch((e)=>{
-                        res.status(400).json({ error: e});
+                    .catch(e => {
+                        console.log(e);
+                        res.status(501).json({ success: false, message: 'Could not add comment'})
+                        return;
                     })
             }
-})
+            )  
 
 export default router;
