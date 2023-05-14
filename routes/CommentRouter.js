@@ -1,4 +1,9 @@
 import express from 'express';
+import mongoose from 'mongoose';
+import { body, validationResult } from 'express-validator';
+import { verifyJWT, verifyAdminJWT } from '../passport';
+import Comment from '../models/CommentModel'
+import Post from '../models/PostModel';
 let router = express.Router();
 
 router.get('/:postId', 
@@ -10,13 +15,10 @@ router.get('/:postId',
                 })
                 .catch(e => {
                     res.status(501).json({ success: false, message: 'Could not get comments'})
-                })
-            
+                })     
 })
 
-// change it to comments/postId/commentId etc what do u thin?
-
-router.put('/:postId/add-comment', 
+router.put('/:postId', 
             verifyJWT,
             body('content')
             .trim()
@@ -58,5 +60,24 @@ router.put('/:postId/add-comment',
                     })
             }
             )
+
+router.delete('/:postId/:commentId',
+                verifyAdminJWT,
+                (req,res,next) => {
+
+                    const deleteCommentDoc = Comment.deleteOne({ _id: req.params.commentId});
+
+                    const deletCommentFromPost = Post.updateOne({ _id: req.params.postId },
+                        { $pull: { comments: new mongoose.Types.ObjectId(req.params.commentId) } })
+
+                    Promise.all([deleteCommentDoc, deletCommentFromPost])
+                        .then((results)=>{
+                            console.log(results)
+                            res.status(200).json({ success: true, message: 'Comment deleted sucessfully' })
+                        }).catch(e => {
+                            console.log(e);
+                            res.status(501).json({ sucess: false, message: 'Comment could not be deleted' })
+                        })
+                })
 
 export default router;

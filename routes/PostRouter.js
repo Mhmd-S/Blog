@@ -2,7 +2,7 @@ import express from 'express';
 import Post from '../models/PostModel';
 import { body, validationResult } from 'express-validator';
 import { verifyJWT, verifyAdminJWT } from '../passport';
-import Comment from '../models/CommentsModel'
+import Comment from '../models/CommentModel'
 
 let router = express.Router();
 
