@@ -11,6 +11,7 @@ import passport from 'passport';
 import userRouter from './routes/UserRouter';
 import postRouter from './routes/PostRouter';
 import authRouter from './routes/AuthRouter';
+import commentRouter from './routes/CommentRouter'
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use(passport.initialize());
 app.use('/users', userRouter);
 app.use('/posts', postRouter);
 app.use('/auth', authRouter);
+app.use('/comments', commentRouter);
 
 // Catching 404 and forwarding it to error handler
 app.use(function(req,res,next) {
