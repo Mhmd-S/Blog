@@ -13,9 +13,11 @@ const cookieExtractor = (req) => {
 // Verify if the user send an valid 
 Router.get('/refresh', (req,res,next) => { 
     const token = cookieExtractor(req);
+    
     jwt.verify(token, process.env.JWT_KEY_REFRESH, (err, decoded) => {
         
         if(err) {
+            console.log(err);
             res.status(401).json({ success: false, message: 'Token is invalid! Log in again.' });
             return;
         }

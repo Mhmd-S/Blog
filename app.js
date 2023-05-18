@@ -5,13 +5,14 @@ import logger from 'morgan';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import createHttpError from 'http-errors';
-import User from './models/UserModel';
 import passport from 'passport';
 
 import userRouter from './routes/UserRouter';
 import postRouter from './routes/PostRouter';
 import authRouter from './routes/AuthRouter';
 import commentRouter from './routes/CommentRouter'
+
+import { errorHandlers } from './utils/errorHandler';
 
 const app = express();
 
@@ -47,18 +48,12 @@ app.use('/auth', authRouter);
 app.use('/comments', commentRouter);
 
 // Catching 404 and forwarding it to error handler
-app.use(function(req,res,next) {
+app.use((req,res,next) => {
     next(createHttpError(404));
 });
 
-app.use(function (err,req,res,next) {
-    // set locals, only providing error in dev
-    res.locals.message = err.message;
-    res.locals.error = req.app.get('env') == 'development' ? err : {};
-
-    // render error page
-    res.status(err.status || 500);
-    res.json({error: err.message});
+app.use((err,req,res,next) => {
+    errorHandlers.handleError(err,res);
 });
 
 app.listen(process.env.PORT, ()=> {

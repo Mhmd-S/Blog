@@ -5,9 +5,9 @@ import { body, validationResult } from 'express-validator';
 import passport from 'passport';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import {verifyJWT, verifyAdminJWT} from '../passport';
+import {verifyJWT, verifyAdminJWT} from '../authentication/jwtAuthentication';
 
-import '../passport'; // Imports the strategies that will be used by passport
+import '../authentication/passport'; // Imports the strategies that will be used by passport
 import Post from '../models/PostModel';
 
 let router = express.Router();
@@ -126,7 +126,7 @@ router.post('/sign-in', (req, res, next)  => {
                     refreshToken = jwt.sign(jwtPayload, process.env.JWT_KEY_ADMIN_REFRESH, { expiresIn: '1d' }); // 24 hours
                 } else {
                     accessToken = jwt.sign(jwtPayload, process.env.JWT_KEY, { expiresIn: '1h' }); // 30 mins
-                    refreshToken = jwt.sign(jwtPayload, process.env.JWT_KEY_REFRESH, { expiresIn: '14d' }); // 14 days
+                    refreshToken = jwt.sign(jwtPayload, process.env.JWT_KEY_REFRESH, { expiresIn: '14d' }); // 14 days // Check for error
                 }
             }
             catch (e) {
@@ -139,7 +139,7 @@ router.post('/sign-in', (req, res, next)  => {
                 });
             }
 
-            res.cookie('access_token', accessToken, { // Can it be this shiT?????
+            res.cookie('access_token', accessToken, { 
                 httpOnly: true,
               });
             

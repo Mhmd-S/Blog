@@ -1,22 +1,13 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
-import { verifyJWT, verifyAdminJWT } from '../passport';
+import { verifyJWT, verifyAdminJWT } from '../authentication/jwtAuthentication';
 import Comment from '../models/CommentModel'
 import Post from '../models/PostModel';
+import * as commentController from '../controllers/commentController';
 let router = express.Router();
 
-router.get('/:postId', 
-            verifyJWT,
-            (req,res,next) => {
-                Post.findById( req.params.postId ).populate('comments').exec()
-                .then((comments)=>{
-                    res.status(200).json({ success: true, message : comments })
-                })
-                .catch(e => {
-                    res.status(501).json({ success: false, message: 'Could not get comments'})
-                })     
-})
+router.get('/:commentId', commentController.getComment );
 
 router.put('/:postId', 
             verifyJWT,
@@ -45,7 +36,7 @@ router.put('/:postId',
                                        {$push: {comments:  result._id}
                         })
                         .then(()=>{
-                            res.status(200).json({ success: true, message: 'Comment added successfully'})
+                            res.status(201).json({ status: 'OK', data: 'Comment added successfully'}) // Add the createed workout instead of message
                         })
                         .catch(e => {
                             console.log(e);
@@ -58,10 +49,9 @@ router.put('/:postId',
                         res.status(501).json({ success: false, message: 'Could not add comment'})
                         return;
                     })
-            }
-            )
+            })
 
-router.delete('/:postId/:commentId',
+router.delete('/:postId/:commentId', // No need for postId just use the post id found in the comment
                 verifyAdminJWT,
                 (req,res,next) => {
 
@@ -73,7 +63,7 @@ router.delete('/:postId/:commentId',
                     Promise.all([deleteCommentDoc, deletCommentFromPost])
                         .then((results)=>{
                             console.log(results)
-                            res.status(200).json({ success: true, message: 'Comment deleted sucessfully' })
+                            res.status(204).json({ status: "OK" })
                         }).catch(e => {
                             console.log(e);
                             res.status(501).json({ sucess: false, message: 'Comment could not be deleted' })
