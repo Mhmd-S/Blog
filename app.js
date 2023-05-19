@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
-import mongoose from 'mongoose';
+import {mongoose} from 'mongoose';
 import logger from 'morgan';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -53,7 +53,14 @@ app.use((req,res,next) => {
 });
 
 app.use((err,req,res,next) => {
-    errorHandlers.handleError(err,res);
+    console.log(err.constructor)
+    if (err instanceof mongoose.Error.ValidationError) {
+        errorHandlers.handleDbValidationError(err,res);
+    }else if ( err instanceof mongoose.Error.CastError) {
+        errorHandlers.handleDbCastError(err,res);
+    } else {
+        errorHandlers.handleError(err,res);
+    }
 });
 
 app.listen(process.env.PORT, ()=> {
