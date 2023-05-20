@@ -1,10 +1,6 @@
 import * as commentService from  '../services/commentService';
-import express from 'express';
-import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
 import { verifyJWT, verifyAdminJWT } from '../authentication/jwtAuthentication';
-import Post from '../models/PostModel';
-import * as commentController from '../controllers/commentController';
 import { AppError } from '../utils/errorHandler';
 
 const getComment = [
@@ -39,16 +35,24 @@ const createComment = [
                 post: req.params.postId
             }
             const comment = await commentService.createComment(commentObj);
-            res.status(200).json({status: "OK", data: comment})
+            res.status(201).json({status: "OK", data: comment});
         } catch (err) {
-            // console.log(err)
+            console.log(err)
             next(err);
         }
     }
 ]
 
-const deleteComment = () => {
-    return;
-}
+const deleteComment = [
+    verifyAdminJWT,
+    async (req,res,next) => {
+        try {
+            await commentService.deleteComment(req.params.commentId);
+            res.status(200).json({status: "OK", message: 'Comment Deleted Successfully' });
+        } catch(err) {
+            next(err);
+        }
+    }
+]
 
 export { getComment , createComment, deleteComment };
