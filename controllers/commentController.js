@@ -8,6 +8,7 @@ const getComment = [
     async(req,res,next) => {
       try {  
         const commentId = req.params.commentId;
+        if (!commentId) throw new AppError(400,' The :postId parameter specified an invalid post ID.');
         const comment = await commentService.getComment(commentId);
         res.status(200).json({ status: "OK", data: comment });
         } catch(err) {
