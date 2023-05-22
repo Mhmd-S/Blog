@@ -32,7 +32,7 @@ const errorHandlers = {
     const propertyNames = Object.keys(err.errors);
     const firstPropertyName = propertyNames[0];
     const firstPropertyValue = err.errors[firstPropertyName];
-    res.status(400).json({ error: {error_detail: 'Invalid ${err.path} value'}})
+    res.status(400).json({ error: {error_detail: `Invalid ${firstPropertyValue.path} value`}})
   }
 }
 
