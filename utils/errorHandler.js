@@ -26,13 +26,13 @@ const errorHandlers = {
   },
   handleDbCastError(err, res){
     console.log(err.reason.BSONError)
-    res.status(400).json({ error: { error_detail: `Invalid ${err.path} value`} })
+    res.status(400).json({ error: { error_detail: `Invalid ${err.path} value. Check the parameter/query.`} })
   },
   handleDbValidationError(err, res) {
     const propertyNames = Object.keys(err.errors);
     const firstPropertyName = propertyNames[0];
     const firstPropertyValue = err.errors[firstPropertyName];
-    res.status(400).json({ error: {error_detail: `Invalid ${firstPropertyValue.path} value`}})
+    res.status(400).json({ error: {error_detail: `Invalid ${firstPropertyValue.path} value. Check the parameter/query.`}})
   }
 }
 

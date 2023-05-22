@@ -16,6 +16,6 @@ router.post('/create-post', postController.createPost);
 router.put('/:postId', postController.updatePost);
 
 // Delete a post
-router.delete(':postId', postController.deletePost );
+router.delete('/:postId', postController.deletePost );
             
 export default router;

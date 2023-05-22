@@ -8,7 +8,7 @@ const getPost = [
     async(req,res,next) => {
         try {
             const postId = req.params.postId;
-            if (!postId) throw new AppError(400,' The :postId parameter specified an invalid post ID.');
+            if (!postId) throw new AppError(400, 'Invalid :postId parameter');
             const post = await postService.getPost(postId);
             res.status(200).json({status:"OK", result: post })
         } catch (err) {
@@ -22,7 +22,7 @@ const getPosts = [
     async(req,res,next) => {
         try {
             const page = req.query.page;
-            if (!page) throw new AppError(400, 'The :page parameter is invalid.')
+            if (!page) throw new AppError(400, 'Invalid ?page value')
             const posts = await postService.getPosts(page); 
             res.status(200).json({status:"OK", result: posts});
         } catch (err) {
@@ -78,7 +78,7 @@ const updatePost = [
     async(req,res,next) => {
         try{
             const postId = req.params.postId;
-            if (!postId) throw new AppError(400,' The :postId parameter specified an invalid post ID.');
+            if (!postId) throw new AppError(400,'Invalid :postId parameter');
 
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
@@ -106,10 +106,9 @@ const deletePost = [
     async(req,res,next) => {
         try {
             const postId = req.params.postId;
-            if (!postId) throw new AppError(400,' The :postId parameter specified an invalid post ID.');
-            const deleteResult = postService.deletePost(postId);
-            res.status(200).json({ status:"OK", result: deleteResult
-         })
+            if (!postId) throw new AppError(400,'Invalid :postId parameter');
+            const deleteResult = await postService.deletePost(postId);
+            res.status(200).json({ status:"OK", result: deleteResult})
         }catch (err) {
             next(err);
         }

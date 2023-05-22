@@ -3,7 +3,7 @@ import { AppError } from '../utils/errorHandler';
 
 const getPost = async(postId) => {
     const post = await Post.findById(postId).populate('comments').exec();
-    if (post === null) throw new AppError(400,' The :postId parameter specified an invalid post ID.');
+    if (post === null) throw new AppError(400,'Invalid :postId parameter');
     return post;
 }
 
@@ -21,7 +21,7 @@ const createPost = async(postObj) => {
 
 const updatePost = async(postId,newPostObj) => {
     const post = await Post.findById(postId).populate('comments').exec();
-    if (post === null) throw new AppError(400,' The :postId parameter specified an invalid post ID.');
+    if (post === null) throw new AppError(400, 'Invalid :postId parameter');
 
     const updatePost = await Post.updateOne({_id: postId}, {
         ...newPostObj
@@ -36,7 +36,7 @@ const updatePost = async(postId,newPostObj) => {
 
 const deletePost = async(postId) => {
     const post = await Post.findById(postId).populate('comments').exec();
-    if (post === null) throw new AppError(400,' The :postId parameter specified an invalid post ID.');
+    if (post === null) throw new AppError(400,' Invalid :postId parameter');
 
     const result = await Post.findByIdAndRemove(postId);
     return result;
