@@ -53,7 +53,7 @@ app.use((req,res,next) => {
 });
 
 app.use((err,req,res,next) => {
-    console.log(err.constructor)
+    console.log(err)
     if (err instanceof mongoose.Error.ValidationError) {
         errorHandlers.handleDbValidationError(err,res);
     }else if ( err instanceof mongoose.Error.CastError) {
